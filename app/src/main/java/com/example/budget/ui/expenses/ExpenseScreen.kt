@@ -8,11 +8,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.budget.util.export.CSVExporter
@@ -29,6 +33,8 @@ fun ExpenseScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    var transactionToDeleteId by remember { mutableStateOf<Long?>(null) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -83,7 +89,13 @@ fun ExpenseScreen(
             )
 
             if (uiState.transactions.isEmpty()) {
-                EmptyState()
+                EmptyState(
+                    title = "No transactions yet",
+                    description = "Add your first expense or income to get started",
+                    icon = Icons.Default.ReceiptLong,
+                    onAction = onNavigateToAdd,
+                    actionLabel = "Add Transaction"
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -96,12 +108,37 @@ fun ExpenseScreen(
                             transaction = transaction,
                             categoryName = categoryName,
                             onEdit = { id -> navController.navigate("expense_graph/add?transactionId=$id") },
-                            onDelete = { id -> viewModel.deleteTransaction(id) }
+                            onDelete = { id -> transactionToDeleteId = id }
                         )
                     }
                 }
             }
         }
+    }
+
+    // Delete Confirmation Dialog
+    transactionToDeleteId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { transactionToDeleteId = null },
+            title = { Text("Delete Transaction") },
+            text = { Text("Are you sure you want to delete this transaction?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteTransaction(id)
+                        transactionToDeleteId = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { transactionToDeleteId = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     // Import Preview Dialog
@@ -135,22 +172,50 @@ fun ExpenseScreen(
 }
 
 @Composable
-fun EmptyState() {
+fun EmptyState(
+    title: String,
+    description: String,
+    icon: ImageVector,
+    onAction: (() -> Unit)? = null,
+    actionLabel: String? = null
+) {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = androidx.compose.ui.Alignment.Center
+        contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-            Text(
-                "No transactions found",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(32.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
-                "Try adjusting your filters or add a new entry.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+            
+            if (onAction != null && actionLabel != null) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(onClick = onAction) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(actionLabel)
+                }
+            }
         }
     }
 }

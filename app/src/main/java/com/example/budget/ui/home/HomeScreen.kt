@@ -1,21 +1,24 @@
 package com.example.budget.ui.home
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.budget.util.export.BackupManager
 import com.example.budget.viewmodel.AppTheme
 import com.example.budget.viewmodel.HomeViewModel
 import com.example.budget.viewmodel.ThemeViewModel
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,12 +31,30 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val appTheme by themeViewModel.theme.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var showBackupOptions by remember { mutableStateOf(false) }
+
+    val backupPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            scope.launch {
+                BackupManager.importFullBackup(context, it)
+                // Optionally show a success message or trigger a refresh
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Budget Dashboard") },
                 actions = {
+                    IconButton(onClick = { showBackupOptions = true }) {
+                        Icon(Icons.Default.Backup, contentDescription = "Backup/Restore")
+                    }
                     IconButton(onClick = { themeViewModel.toggleTheme() }) {
                         Icon(
                             imageVector = when (appTheme) {
@@ -171,6 +192,32 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    if (showBackupOptions) {
+        AlertDialog(
+            onDismissRequest = { showBackupOptions = false },
+            title = { Text("Backup & Restore") },
+            text = { Text("Create a full backup of all your data (Expenses, Income, Debts, Loans) or restore from a previously saved file.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBackupOptions = false
+                    scope.launch {
+                        BackupManager.createFullBackup(context)
+                    }
+                }) {
+                    Text("Create Backup")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showBackupOptions = false
+                    backupPickerLauncher.launch("application/json")
+                }) {
+                    Text("Restore Backup")
+                }
+            }
+        )
     }
 }
 

@@ -34,7 +34,7 @@ fun SwipeableExpenseItem(
                 }
                 SwipeToDismissBoxValue.EndToStart -> {
                     onDelete(transaction.id)
-                    true
+                    false // Return false so the item snaps back while the confirmation dialog is shown
                 }
                 else -> false
             }

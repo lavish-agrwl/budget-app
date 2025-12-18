@@ -35,6 +35,8 @@ fun PersonDetailScreen(
     
     var showFullSettlementDialog by remember { mutableStateOf(false) }
     var transactionToSettle by remember { mutableStateOf<BorrowLendTransactionEntity?>(null) }
+    var transactionToDeleteId by remember { mutableStateOf<Long?>(null) }
+    var settlementToDelete by remember { mutableStateOf<SettlementEntity?>(null) }
 
     LaunchedEffect(personId) {
         viewModel.selectPerson(personId)
@@ -88,13 +90,13 @@ fun PersonDetailScreen(
                             SwipeableTransactionItem(
                                 transaction = item,
                                 onEdit = { onEditTransaction(item.id) },
-                                onDelete = { viewModel.deleteTransaction(item.id) },
+                                onDelete = { transactionToDeleteId = item.id },
                                 onSettleRequested = { transactionToSettle = item }
                             )
                         }
                         is SettlementEntity -> SettlementHistoryItem(
                             settlement = item,
-                            onDelete = { viewModel.deleteSettlement(item) }
+                            onDelete = { settlementToDelete = item }
                         )
                     }
                 }
@@ -125,6 +127,56 @@ fun PersonDetailScreen(
                 transactionToSettle = null
             },
             onDismiss = { transactionToSettle = null }
+        )
+    }
+
+    // Delete Transaction Dialog
+    transactionToDeleteId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { transactionToDeleteId = null },
+            title = { Text("Delete Transaction") },
+            text = { Text("Are you sure you want to delete this transaction?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteTransaction(id)
+                        transactionToDeleteId = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { transactionToDeleteId = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Delete Settlement Dialog
+    settlementToDelete?.let { settlement ->
+        AlertDialog(
+            onDismissRequest = { settlementToDelete = null },
+            title = { Text("Delete Settlement") },
+            text = { Text("Are you sure you want to delete this settlement record of ₹${settlement.amount}?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteSettlement(settlement)
+                        settlementToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { settlementToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 }

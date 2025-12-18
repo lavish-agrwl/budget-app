@@ -26,13 +26,14 @@ fun AddExpenseScreen(
     transactionId: Long? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+
     var amount by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("EXPENSE") }
     var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
+    var showDiscardDialog by remember { mutableStateOf(false) }
 
     // Pre-fill data if editing
     LaunchedEffect(transactionId, uiState.transactions) {
@@ -50,6 +51,14 @@ fun AddExpenseScreen(
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
 
+    val onDiscardAction = {
+        if (amount.isNotEmpty() || description.isNotEmpty()) {
+            showDiscardDialog = true
+        } else {
+            onNavigateBack()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -62,10 +71,23 @@ fun AddExpenseScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(if (transactionId == null) "Add Entry" else "Edit Entry") },
+                    title = {
+                        Text(
+                            if (transactionId == null) {
+                                if (type == "EXPENSE") "Add Expense" else "Add Income"
+                            } else {
+                                "Edit Entry"
+                            }
+                        )
+                    },
                     navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        IconButton(onClick = onDiscardAction) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Discard changes")
+                        }
+                    },
+                    actions = {
+                        TextButton(onClick = onDiscardAction) {
+                            Text("Discard")
                         }
                     }
                 )
@@ -125,13 +147,13 @@ fun AddExpenseScreen(
                         TextButton(onClick = { showAddCategoryDialog = true }) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add New")
+                            Text("Add Category")
                         }
                     }
 
                     if (uiState.categories.isEmpty()) {
                         Text(
-                            "No categories yet. Add one to continue.",
+                            "No categories created yet.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -168,7 +190,7 @@ fun AddExpenseScreen(
                         if (amountDouble > 0) {
                             if (transactionId == null) {
                                 if (type == "EXPENSE") {
-                                    selectedCategoryId?.let { 
+                                    selectedCategoryId?.let {
                                         viewModel.addExpense(amountDouble, it, description)
                                         onNavigateBack()
                                     }
@@ -194,10 +216,33 @@ fun AddExpenseScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = amount.isNotEmpty() && (type == "INCOME" || selectedCategoryId != null)
                 ) {
-                    Text(if (transactionId == null) "Save Entry" else "Update Entry")
+                    val label = if (transactionId == null) {
+                        if (type == "EXPENSE") "Add Expense" else "Add Income"
+                    } else {
+                        "Update Entry"
+                    }
+                    Text(label)
                 }
             }
         }
+    }
+
+    if (showDiscardDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardDialog = false },
+            title = { Text("Discard changes?") },
+            text = { Text("You have unsaved changes. Are you sure you want to discard them?") },
+            confirmButton = {
+                TextButton(onClick = onNavigateBack) {
+                    Text("Discard")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardDialog = false }) {
+                    Text("Keep Editing")
+                }
+            }
+        )
     }
 
     if (showAddCategoryDialog) {
@@ -222,12 +267,12 @@ fun AddExpenseScreen(
                         }
                     }
                 ) {
-                    Text("Add")
+                    Text("Add Category")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddCategoryDialog = false }) {
-                    Text("Cancel")
+                    Text("Discard")
                 }
             }
         )
