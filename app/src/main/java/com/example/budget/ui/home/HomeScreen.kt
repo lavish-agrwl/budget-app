@@ -5,6 +5,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CallMade
+import androidx.compose.material.icons.automirrored.filled.CallReceived
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,6 +18,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.budget.ui.components.MonthSwitcher
 import com.example.budget.util.export.BackupManager
 import com.example.budget.viewmodel.AppTheme
 import com.example.budget.viewmodel.HomeViewModel
@@ -42,7 +47,6 @@ fun HomeScreen(
         uri?.let {
             scope.launch {
                 BackupManager.importFullBackup(context, it)
-                // Optionally show a success message or trigger a refresh
             }
         }
     }
@@ -76,6 +80,14 @@ fun HomeScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            item {
+                MonthSwitcher(
+                    selectedMonth = uiState.selectedMonth,
+                    onPreviousMonth = { viewModel.goToPreviousMonth() },
+                    onNextMonth = { viewModel.goToNextMonth() }
+                )
+            }
+
             item {
                 Text(
                     text = "Monthly Overview",
@@ -118,7 +130,7 @@ fun HomeScreen(
 
             item {
                 Text(
-                    text = "Debts & Loans",
+                    text = "Overall Debts & Loans",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -132,14 +144,14 @@ fun HomeScreen(
                     HighlightCard(
                         title = "Receivable",
                         amount = uiState.totalLent,
-                        icon = Icons.Default.CallReceived,
+                        icon = Icons.AutoMirrored.Filled.CallReceived,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f)
                     )
                     HighlightCard(
                         title = "Payable",
                         amount = uiState.totalBorrowed,
-                        icon = Icons.Default.CallMade,
+                        icon = Icons.AutoMirrored.Filled.CallMade,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.weight(1f)
                     )
@@ -151,7 +163,7 @@ fun HomeScreen(
                 HighlightCard(
                     title = if (isNetReceivable) "Net Receivable" else "Net Payable",
                     amount = abs(uiState.netBorrowLend),
-                    icon = if (isNetReceivable) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                    icon = if (isNetReceivable) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
                     color = if (isNetReceivable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     modifier = Modifier.fillMaxWidth()
                 )

@@ -47,8 +47,16 @@ class BorrowLendViewModel(
         borrowLendRepo.getAllSettlements(),
         _selectedPersonId,
         _importPreview
-    ) { people, allTransactions, allSettlements, selectedId, importPreview ->
-        
+    ) { flows ->
+        @Suppress("UNCHECKED_CAST")
+        val people = flows[0] as List<PersonEntity>
+        @Suppress("UNCHECKED_CAST")
+        val allTransactions = flows[1] as List<BorrowLendTransactionEntity>
+        @Suppress("UNCHECKED_CAST")
+        val allSettlements = flows[2] as List<SettlementEntity>
+        val selectedId = flows[3] as Long?
+        val importPreview = flows[4] as BorrowLendImportPreview?
+
         val balances = people.map { person ->
             val totalLent = allTransactions.filter { it.personId == person.id && it.direction == "LENT" }.sumOf { it.amount }
             val totalBorrowed = allTransactions.filter { it.personId == person.id && it.direction == "BORROWED" }.sumOf { it.amount }
@@ -56,7 +64,7 @@ class BorrowLendViewModel(
             val netTransactions = totalLent - totalBorrowed
             val netSettlements = allSettlements.filter { it.personId == person.id }.sumOf { it.amount }
             
-            val finalBalance = if (netTransactions >= 0) {
+            val finalBalance = if (netTransactions >= 0.0) {
                 netTransactions - netSettlements
             } else {
                 netTransactions + netSettlements

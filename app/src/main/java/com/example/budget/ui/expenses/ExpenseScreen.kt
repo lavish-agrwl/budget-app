@@ -14,11 +14,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.budget.ui.components.MonthSwitcher
 import com.example.budget.util.export.CSVExporter
 import com.example.budget.viewmodel.ExpenseViewModel
 import kotlinx.coroutines.launch
@@ -72,6 +75,18 @@ fun ExpenseScreen(
                 .padding(padding)
                 .fillMaxSize()
         ) {
+            MonthSwitcher(
+                selectedMonth = uiState.selectedMonth,
+                onPreviousMonth = { viewModel.goToPreviousMonth() },
+                onNextMonth = { viewModel.goToNextMonth() },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            MonthlySummaryCards(
+                totalExpenses = uiState.totalExpensesMonth,
+                totalIncome = uiState.totalIncomeMonth
+            )
+
             ExpenseFilterBar(
                 searchQuery = uiState.searchQuery,
                 onSearchQueryChange = { 
@@ -90,8 +105,8 @@ fun ExpenseScreen(
 
             if (uiState.transactions.isEmpty()) {
                 EmptyState(
-                    title = "No transactions yet",
-                    description = "Add your first expense or income to get started",
+                    title = "No transactions found",
+                    description = "Adjust filters or add your first transaction",
                     icon = Icons.Default.ReceiptLong,
                     onAction = onNavigateToAdd,
                     actionLabel = "Add Transaction"
@@ -168,6 +183,45 @@ fun ExpenseScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun MonthlySummaryCards(totalExpenses: Double, totalIncome: Double) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Card(
+            modifier = Modifier.weight(1f),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("Monthly Income", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "₹${String.format("%.2f", totalIncome)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        Card(
+            modifier = Modifier.weight(1f),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f))
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("Monthly Expenses", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "₹${String.format("%.2f", totalExpenses)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
     }
 }
 

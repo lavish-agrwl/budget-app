@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeViewModel: ThemeViewModel = viewModel()
             val appTheme by themeViewModel.theme.collectAsState()
-            
+
             BudgetTheme(appTheme = appTheme) {
                 MainScreen(themeViewModel)
             }
@@ -61,7 +61,7 @@ fun MainScreen(themeViewModel: ThemeViewModel) {
                         onClick = {
                             navController.navigate(route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = false 
+                                    saveState = false
                                 }
                                 launchSingleTop = true
                                 restoreState = false

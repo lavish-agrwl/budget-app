@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.YearMonth
+import java.time.ZoneId
 
 data class ExpenseUiState(
     val transactions: List<ExpenseTransactionEntity> = emptyList(),
@@ -25,7 +27,10 @@ data class ExpenseUiState(
     val searchQuery: String = "",
     val importPreview: ImportPreview? = null,
     val lastUsedType: String = "EXPENSE",
-    val lastUsedCategoryId: Long? = null
+    val lastUsedCategoryId: Long? = null,
+    val selectedMonth: YearMonth = YearMonth.now(),
+    val totalExpensesMonth: Double = 0.0,
+    val totalIncomeMonth: Double = 0.0
 )
 
 class ExpenseViewModel(
@@ -39,27 +44,45 @@ class ExpenseViewModel(
     private val _importPreview = MutableStateFlow<ImportPreview?>(null)
     private val _lastUsedType = MutableStateFlow("EXPENSE")
     private val _lastUsedCategoryId = MutableStateFlow<Long?>(null)
+    private val _selectedMonth = MutableStateFlow(YearMonth.now())
 
     val uiState: StateFlow<ExpenseUiState> = combine(
         transactionRepo.getAllTransactions(),
         categoryRepo.getActiveCategories(),
         _filterType,
         _filterCategoryId,
-        combine(_searchQuery, _importPreview, _lastUsedType, _lastUsedCategoryId) { query, preview, lastType, lastCatId -> 
-            listOf(query, preview, lastType, lastCatId)
-        }
-    ) { transactions, categories, type, categoryId, queryPreviewLast ->
-        val query = queryPreviewLast[0] as String
-        val preview = queryPreviewLast[1] as ImportPreview?
-        val lastType = queryPreviewLast[2] as String
-        val lastCatId = queryPreviewLast[3] as Long?
+        _searchQuery,
+        _selectedMonth,
+        _importPreview,
+        _lastUsedType,
+        _lastUsedCategoryId
+    ) { flows: Array<Any?> ->
+        @Suppress("UNCHECKED_CAST")
+        val transactions = flows[0] as List<ExpenseTransactionEntity>
+        @Suppress("UNCHECKED_CAST")
+        val categories = flows[1] as List<ExpenseCategoryEntity>
+        val type = flows[2] as String?
+        val categoryId = flows[3] as Long?
+        val query = flows[4] as String
+        val month = flows[5] as YearMonth
+        val preview = flows[6] as ImportPreview?
+        val lastType = flows[7] as String
+        val lastCatId = flows[8] as Long?
         
+        val monthStart = month.atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val monthEnd = month.atEndOfMonth().atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+
         val filteredTransactions = transactions.filter { transaction ->
             val matchesType = type == null || transaction.type == type
             val matchesCategory = categoryId == null || transaction.categoryId == categoryId
             val matchesQuery = query.isEmpty() || transaction.description.contains(query, ignoreCase = true)
             matchesType && matchesCategory && matchesQuery
         }
+
+        val monthTransactions = transactions.filter { it.timestamp in monthStart..monthEnd }
+        val totalExp = monthTransactions.filter { it.type == "EXPENSE" }.sumOf { it.amount }
+        val totalInc = monthTransactions.filter { it.type == "INCOME" }.sumOf { it.amount }
+
         ExpenseUiState(
             transactions = filteredTransactions,
             categories = categories,
@@ -68,13 +91,27 @@ class ExpenseViewModel(
             searchQuery = query,
             importPreview = preview,
             lastUsedType = lastType,
-            lastUsedCategoryId = lastCatId
+            lastUsedCategoryId = lastCatId,
+            selectedMonth = month,
+            totalExpensesMonth = totalExp,
+            totalIncomeMonth = totalInc
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = ExpenseUiState()
     )
+
+    fun goToPreviousMonth() {
+        _selectedMonth.value = _selectedMonth.value.minusMonths(1)
+    }
+
+    fun goToNextMonth() {
+        val nextMonth = _selectedMonth.value.plusMonths(1)
+        if (nextMonth <= YearMonth.now()) {
+            _selectedMonth.value = nextMonth
+        }
+    }
 
     fun addCategory(name: String) {
         viewModelScope.launch {

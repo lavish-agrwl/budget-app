@@ -77,7 +77,17 @@ fun BorrowLendScreen(
             BorrowLendSummaryHeader(
                 totalLent = uiState.totalLent,
                 totalBorrowed = uiState.totalBorrowed,
-                netBorrowLend = uiState.netBorrowLend
+                netBorrowLend = uiState.netBorrowLend,
+                title = "Overall Summary"
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
+            Text(
+                text = "Balances",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                color = MaterialTheme.colorScheme.primary
             )
 
             if (uiState.peopleBalances.isEmpty()) {
@@ -210,30 +220,43 @@ fun SwipeablePersonItem(
 }
 
 @Composable
-fun BorrowLendSummaryHeader(totalLent: Double, totalBorrowed: Double, netBorrowLend: Double) {
+fun BorrowLendSummaryHeader(
+    totalLent: Double, 
+    totalBorrowed: Double, 
+    netBorrowLend: Double,
+    title: String? = null
+) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            if (title != null) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text("You will receive", style = MaterialTheme.typography.labelMedium)
+                    Text("Total Lent", style = MaterialTheme.typography.labelSmall)
                     Text(
                         text = "₹${String.format("%.2f", totalLent)}",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("You owe", style = MaterialTheme.typography.labelMedium)
+                    Text("Total Borrowed", style = MaterialTheme.typography.labelSmall)
                     Text(
                         text = "₹${String.format("%.2f", totalBorrowed)}",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.Bold
                     )
@@ -252,12 +275,12 @@ fun BorrowLendSummaryHeader(totalLent: Double, totalBorrowed: Double, netBorrowL
             ) {
                 Text(
                     text = if (isNetReceivable) "Net Receivable" else "Net Payable",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     text = "₹${String.format("%.2f", abs(netBorrowLend))}",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     color = if (isNetReceivable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     fontWeight = FontWeight.Bold
                 )
